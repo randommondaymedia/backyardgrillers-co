@@ -1,0 +1,280 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import pagesData from '../data/pages.json';
+import siteData from '../data/site.json';
+import homepageProducts from '../data/homepage-products.json';
+const sidebarTopPicks = homepageProducts.topPicks.slice(0, 3);
+
+export async function getStaticPaths() {
+  const pages = (await import('../data/pages.json')).default;
+  return pages
+    .filter((page: { status: string }) => page.status === 'PUBLISHED')
+    .map((page) => ({ params: { slug: page.slug }, props: { page } }));
+}
+
+const { page } = Astro.props;
+const brand = siteData.brand;
+const silo = siteData.silos.find((s) => s.slug === page.siloSlug);
+const heroImage = silo?.imagePath ?? siteData.heroImagePath;
+const related = pagesData
+  .filter((p) => p.slug !== page.slug && page.relatedSlugs.includes(p.slug))
+  .slice(0, 6);
+
+// For hub pages: pull every spoke that lives in this silo, sorted by
+// template (BEST_OF first since it's the highest-intent spoke).
+const TEMPLATE_RANK = { BEST_OF: 0, COMPARISON: 1, REVIEW: 2, ROUNDUP: 3, VS_PAGE: 4, HOW_TO: 5, INFORMATIONAL: 6, CATEGORY_HUB: 7 };
+// PUBLISHED-only: drafts/blueprints exist in pages.json but should NOT show in hub nav.
+// Otherwise visitors and Google land on empty template pages, which tanks SEO trust.
+const siblingSpokes = pagesData
+  .filter((p) => p.siloSlug === page.siloSlug && !p.isHubPage && p.status === 'PUBLISHED')
+  .sort((a, b) => (TEMPLATE_RANK[a.template] ?? 99) - (TEMPLATE_RANK[b.template] ?? 99));
+
+// Display niceties — Site.name comes from the dashboard niche field, so
+// title-case for the breadcrumb root + footer parity.
+function titleCase(s) {
+  return s.replace(/\b\w/g, (c) => c.toUpperCase());
+}
+const siteDisplayName = titleCase(siteData.name);
+const siloDisplayName = titleCase(page.siloName);
+
+// Updated date — fixed to the build time so the page doesn't claim
+// freshness it doesn't have. Astro re-renders on every build anyway.
+const updatedLabel = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+
+// Approximate read time at ~220 wpm. Placeholder pages get a small
+// floor so the meta row never reads "0 min".
+const wordsApprox = (page.outline || '').replace(/<[^>]+>/g, ' ').trim().split(/\s+/).filter(Boolean).length;
+const readMin = Math.max(2, Math.round(wordsApprox / 220));
+
+const TEMPLATE_LABELS = {
+  REVIEW: 'Review', BEST_OF: 'Best Of', COMPARISON: 'Comparison', VS_PAGE: 'Vs',
+  ROUNDUP: 'Roundup', HOW_TO: 'How-To', INFORMATIONAL: 'Guide', CATEGORY_HUB: 'Hub',
+};
+function templateLabel(t) { return TEMPLATE_LABELS[t] || 'Guide'; }
+
+// Phase 2.9 Task 13: Claude emits <aside class="pull" data-slug="X"> with the
+// raw /go/ slug as a data attribute. Wrap with a clickable <a> here so we
+// don't rely on Claude hallucinating a valid href.
+const outlineWithAnchoredPullquotes = (page.outline || '').replace(
+  /<aside class="pull" data-slug="([^"]+)">([sS]*?)<\/aside>/g,
+  '<a class="pull" href="$1">$2</a>',
+);
+---
+<BaseLayout title={page.metaTitle} description={page.metaDescription} isSpoke={!page.isHubPage}>
+
+  {page.isHubPage ? (
+    <>
+      <!-- HUB HERO -->
+      <section class="spoke-hero">
+        <div class="spoke-hero-bg" style={`background-image: url('${heroImage}');`}></div>
+        <div class="spoke-hero-ov"></div>
+        <div class="spoke-hero-inner">
+          <div class="crumb">
+            <a href="/">{siteDisplayName}</a><span class="crumb-sep">›</span>
+            <span style="color:rgba(255,255,255,.60)">{siloDisplayName}</span>
+          </div>
+          <h1 class="spoke-h1">{page.title}</h1>
+          {silo?.description && (
+            <p class="hub-intro">{silo.description}</p>
+          )}
+          <div class="spoke-meta">
+            <span>{siblingSpokes.length} guide{siblingSpokes.length === 1 ? '' : 's'}</span>
+            <span>Updated {updatedLabel}</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- HUB GRID — every spoke in this silo -->
+      <section class="hub-section" style="background:var(--cream);border-top:none;border-bottom:none">
+        <div style="max-width:1320px;margin:0 auto;padding:0 32px">
+          <div class="sec-head">
+            <div>
+              <div class="sec-label">All Guides</div>
+              <h2 class="sec-title">Browse {siloDisplayName} Guides</h2>
+            </div>
+            <a href="/" class="sec-link">All categories →</a>
+          </div>
+
+          {siblingSpokes.length === 0 ? (
+            <div class="hub-empty">
+              <p>Guides for this category are publishing soon. <a href="/">See our other categories →</a></p>
+            </div>
+          ) : (
+            <div class="hub-grid">
+              {siblingSpokes.map((spoke) => (
+                <a href={spoke.url} class="hub-card" style="text-decoration:none;color:inherit">
+                  <div class="hub-type">{templateLabel(spoke.template)}</div>
+                  <div class="hub-title">{spoke.title}</div>
+                  <div class="hub-desc">{spoke.metaDescription}</div>
+                  <div class="hub-cta">Read guide →</div>
+                </a>
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
+    </>
+  ) : (
+    <>
+  <!-- SPOKE HERO (compact, 180px) -->
+  <section class="spk-hero">
+    <div class="spk-hero-bg" style={`background-image: url('${heroImage}');`}></div>
+    <div class="spk-hero-ov"></div>
+    <div class="spk-hero-inner">
+      <div class="crumb">
+        <a href="/">{siteDisplayName}</a><span class="crumb-sep">›</span>
+        <a href={`/${page.siloSlug}/`}>{siloDisplayName}</a>
+      </div>
+      <h1 class="h1">{page.title}</h1>
+      <div class="meta">
+        <b>Updated {updatedLabel}</b>
+        <span class="meta-dot">·</span>
+        <span>{readMin} min read</span>
+        <span class="meta-dot">·</span>
+        <span>{page.productsCompared} {brand.productNounPlural} compared</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- DUAL PICK ROW (Phase 2.9) -->
+  {sidebarTopPicks.length > 0 && (
+    <section class="spk-picks-wrap">
+      <div class="spk-picks-eyebrow">OUR TOP PICKS</div>
+      <div class="spk-picks-row" data-count={Math.min(sidebarTopPicks.length, 2)}>
+        {sidebarTopPicks.slice(0, 2).map((p, i) => {
+          const cardClass = i === 0 ? 'spk-pcard winner' : 'spk-pcard value';
+          const badgeClass = i === 0 ? 'spk-pcard-badge' : 'spk-pcard-badge value';
+          const badgeLabel = i === 0 ? '#1 PICK' : 'BEST VALUE';
+          return (
+            <a class={cardClass} href={p.slug}>
+              <div class="spk-pcard-img">
+                <img src={p.imageUrl} alt={p.imageAlt} />
+                <span class={badgeClass}>{badgeLabel}</span>
+              </div>
+              <div class="spk-pcard-body">
+                <div class="spk-pcard-name">{p.name}</div>
+                <div class="spk-pcard-stars">{p.rating !== null ? '★'.repeat(Math.round(p.rating)) + '☆'.repeat(5 - Math.round(p.rating)) : '★★★★★'}{p.reviewCount !== null ? ` (${p.reviewCount.toLocaleString()})` : ''}</div>
+                <div class="spk-pcard-price">{p.price !== null ? `$${p.price.toLocaleString()}` : '—'}</div>
+                <span class="spk-pcard-cta">VIEW ON AMAZON →</span>
+              </div>
+            </a>
+          );
+        })}
+      </div>
+    </section>
+  )}
+
+  <!-- SPOKE LAYOUT — article + sidebar grid -->
+  <div class="spoke-layout">
+    <div class="spoke-content" data-status={page.status}>
+      <Fragment set:html={outlineWithAnchoredPullquotes} />
+
+      {sidebarTopPicks[0] && (
+        <section class="spk-verdict">
+          <div class="spk-verdict-label">THE BOTTOM LINE</div>
+          <h2 class="spk-verdict-title">After {page.productsCompared} {brand.productNounPlural} compared, the <em>{sidebarTopPicks[0].name}</em> wins</h2>
+          <p class="spk-verdict-body">Best build quality, balanced performance, and the strongest warranty in our roundup.{sidebarTopPicks[1] ? <> If you want a budget alternative, see <b>{sidebarTopPicks[1].name}</b> below.</> : null}</p>
+          <a class="spk-vcta" href={sidebarTopPicks[0].slug}>
+            <div class="spk-vcta-img"><img src={sidebarTopPicks[0].imageUrl} alt={sidebarTopPicks[0].imageAlt} /></div>
+            <div class="spk-vcta-meta">
+              <div class="spk-vcta-rank">★ OUR #1 PICK</div>
+              <div class="spk-vcta-name">{sidebarTopPicks[0].name}</div>
+              <div class="spk-vcta-price">{sidebarTopPicks[0].price !== null ? `$${sidebarTopPicks[0].price.toLocaleString()}` : '—'}</div>
+            </div>
+            <span class="spk-vcta-arrow">SHOP →</span>
+          </a>
+        </section>
+      )}
+    </div>
+
+    <!-- SIDEBAR -->
+    <aside class="sb">
+      {sidebarTopPicks.length > 0 && (
+        <div class="sb-box">
+          <div class="sb-head">Our Top Picks Right Now</div>
+          <div class="sb-body">
+            {sidebarTopPicks.map((p) => (
+              <a class="sb-prod" data-rank={p.rank} href={p.slug}>
+                <div class="sb-thumb"><img src={p.imageUrl} alt={p.imageAlt} /></div>
+                <div>
+                  <div class="sb-rank">#{p.rank}</div>
+                  <div class="sb-name">{p.name}</div>
+                  <div class="sb-stars">{p.rating !== null ? '★'.repeat(Math.round(p.rating)) + '☆'.repeat(5 - Math.round(p.rating)) : '★★★★★'}</div>
+                  <div class="sb-price">{p.price !== null ? `$${p.price.toLocaleString()}` : '—'} · {brand.productNounSingular}</div>
+                </div>
+              </a>
+            ))}
+            <a href="/" class="sb-btn">See Full Rankings →</a>
+          </div>
+        </div>
+      )}
+
+      {related.length > 0 && (
+        <div class="sb-box">
+          <div class="sb-head">Related Articles</div>
+          <div class="sb-body">
+            <ul class="rl-list">
+              {related.map((item) => (
+                <li class="rl-item">
+                  <a href={`/${item.slug}/`}>
+                    <span class="rl-type">{templateLabel(item.template)}</span>
+                    {item.title}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      )}
+    </aside>
+  </div>
+
+    {related.length > 0 && (
+      <section class="spk-related-section">
+        <div class="spk-related-inner">
+          <div class="spk-related-h">KEEP READING</div>
+          <h2 class="spk-related-h2">More {siloDisplayName} guides</h2>
+          <div class="spk-related-grid">
+            {related.slice(0, 3).map((item) => (
+              <a class="spk-relcard" href={`/${item.slug}/`}>
+                <div class="spk-relcard-type">{templateLabel(item.template)}</div>
+                <h3 class="spk-relcard-title">{item.title}</h3>
+                <span class="spk-relcard-arrow">READ GUIDE →</span>
+              </a>
+            ))}
+          </div>
+        </div>
+      </section>
+    )}
+    {sidebarTopPicks[0] && (
+      <>
+        <a class="spk-sba" id="spk-sba-target" href={sidebarTopPicks[0].slug}>
+          <div class="spk-sba-img"><img src={sidebarTopPicks[0].imageUrl} alt={sidebarTopPicks[0].imageAlt} /></div>
+          <div class="spk-sba-meta">
+            <div class="spk-sba-label">OUR PICK</div>
+            <div class="spk-sba-name">{sidebarTopPicks[0].name}</div>
+            <div class="spk-sba-price">{sidebarTopPicks[0].price !== null ? `$${sidebarTopPicks[0].price.toLocaleString()}` : '—'}{sidebarTopPicks[0].rating !== null ? ` · ${'★'.repeat(Math.round(sidebarTopPicks[0].rating))}` : ''}</div>
+          </div>
+          <span class="spk-sba-cta">SHOP →</span>
+        </a>
+        <script>{`
+          (function(){
+            var bar = document.getElementById('spk-sba-target');
+            var trigger = document.querySelector('.spk-picks-row');
+            if (bar && trigger && 'IntersectionObserver' in window) {
+              var io = new IntersectionObserver(function(entries){
+                for (var i=0; i<entries.length; i++) {
+                  bar.classList.toggle('spk-sba--visible', !entries[i].isIntersecting);
+                }
+              }, { rootMargin: '0px 0px -80% 0px' });
+              io.observe(trigger);
+            } else if (bar) {
+              bar.classList.add('spk-sba--visible');
+            }
+          })();
+        `}</script>
+      </>
+    )}
+    </>
+  )}
+</BaseLayout>
