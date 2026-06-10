@@ -473,15 +473,23 @@ button{font-family:var(--font-ui);cursor:pointer;border:none}
 @media(max-width:700px){
   .p-grid{grid-template-columns:1fr}
   .grid-5{grid-template-columns:repeat(2,1fr)}
-  .pick-row{grid-template-columns:1fr;padding:20px}
+  /* Card layout on mobile: name/why span the top, then price + CTA share
+     one row so it stays compact instead of three stacked full-width blocks. */
+  .pick-row{grid-template-columns:1fr auto;grid-template-areas:"meta meta" "price cta";gap:14px 12px;padding:18px}
   .pick-row img{display:none}
+  .pick-row-meta{grid-area:meta;min-width:0}
+  .pick-row-price{grid-area:price;text-align:left;align-self:center}
+  .pick-row-cta{grid-area:cta;align-self:center}
   .nav{display:none}
   .search-wrap{display:none}
   .cat-card{flex:0 0 calc(48% - 9px)}
   .ft-top{grid-template-columns:1fr}
-  .hero{min-height:460px;height:auto}
-  .hero-text{max-width:100%;padding:32px 24px 40px;gap:12px}
-  .hero-overlay{background:linear-gradient(180deg,rgba(0,0,0,.45) 0%,rgba(0,0,0,.78) 100%)}
+  .hero{min-height:auto;height:auto}
+  /* In-flow on mobile so the hero grows with the headline instead of the
+     bottom-anchored text overflowing (and being clipped at) the top. */
+  .hero-text{position:static;max-width:100%;padding:36px 24px 44px;gap:12px}
+  .hero-scroll{display:none}
+  .hero-overlay{background:linear-gradient(180deg,rgba(0,0,0,.40) 0%,rgba(0,0,0,.82) 100%)}
   .hero-trust{flex-direction:column;align-items:flex-start;gap:16px}
   .ht-sep{display:none}
   .nl-form{flex-direction:column}
