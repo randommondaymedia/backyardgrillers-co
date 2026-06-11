@@ -13,7 +13,7 @@
       "description": "Topical silo anchored on \"bbq grills outdoor kitchen\".",
       "imagePath": "/images/silo-bbq-grills-outdoor-kitchen.jpg",
       "hubUrl": "/bbq-grills-outdoor-kitchen/",
-      "spokeCount": 39
+      "spokeCount": 10
     },
     {
       "slug": "charcoal-bbq-grills-walmart",
@@ -22,7 +22,7 @@
       "description": "Topical silo anchored on \"charcoal bbq grills walmart\".",
       "imagePath": "/images/silo-charcoal-bbq-grills-walmart.jpg",
       "hubUrl": "/charcoal-bbq-grills-walmart/",
-      "spokeCount": 56
+      "spokeCount": 17
     },
     {
       "slug": "gas-grills-for-sale",
@@ -31,7 +31,7 @@
       "description": "Topical silo anchored on \"gas grills for sale\".",
       "imagePath": "/images/silo-gas-grills-for-sale.jpg",
       "hubUrl": "/gas-grills-for-sale/",
-      "spokeCount": 68
+      "spokeCount": 20
     },
     {
       "slug": "natural-gas-outdoor-grills",
@@ -40,7 +40,7 @@
       "description": "Topical silo anchored on \"natural gas outdoor grills\".",
       "imagePath": "/images/silo-natural-gas-outdoor-grills.jpg",
       "hubUrl": "/natural-gas-outdoor-grills/",
-      "spokeCount": 50
+      "spokeCount": 19
     },
     {
       "slug": "walmart-electric-outdoor-grills",
@@ -49,7 +49,7 @@
       "description": "Topical silo anchored on \"walmart electric outdoor grills\".",
       "imagePath": "/images/silo-walmart-electric-outdoor-grills.jpg",
       "hubUrl": "/walmart-electric-outdoor-grills/",
-      "spokeCount": 24
+      "spokeCount": 5
     }
   ],
   "brand": {
@@ -118,6 +118,6 @@
     "lifestyleSceneDescription": "weathered apron-wearing chef tending a flame-licked steak on a stainless steel BBQ grill at golden hour in a suburban backyard, subject anchored right of frame, candid documentary moment"
   },
   "paletteName": "terracotta",
-  "generatedAt": "2026-06-10T12:37:09.361Z",
+  "generatedAt": "2026-06-11T12:33:44.521Z",
   "factoryVersion": "0.1.0"
 }
